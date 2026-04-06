@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'screens/home_screen.dart';
+import 'core/theme.dart'; // ✅ IMPORTANT
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -20,10 +18,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Finance App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const HomeScreen(), // 👈 your main screen
+
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // 🔥 auto switch
+      home: const HomeScreen(),
     );
   }
 }

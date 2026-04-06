@@ -9,12 +9,10 @@ class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
 
   @override
-  ConsumerState<InsightsScreen> createState() =>
-      _InsightsScreenState();
+  ConsumerState<InsightsScreen> createState() => _InsightsScreenState();
 }
 
-class _InsightsScreenState
-    extends ConsumerState<InsightsScreen>
+class _InsightsScreenState extends ConsumerState<InsightsScreen>
     with SingleTickerProviderStateMixin {
   bool showMonthly = true;
   bool showIncome = true;
@@ -34,14 +32,12 @@ class _InsightsScreenState
       duration: const Duration(milliseconds: 700),
     );
 
-    fadeAnim =
-        CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
     slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.2),
       end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
   }
@@ -65,8 +61,7 @@ class _InsightsScreenState
     double lastWeek = 0;
 
     for (var tx in transactions) {
-      final d =
-          DateTime(tx.date.year, tx.date.month, tx.date.day);
+      final d = DateTime(tx.date.year, tx.date.month, tx.date.day);
 
       if (tx.type == "expense") {
         categoryTotals[tx.category] =
@@ -122,74 +117,118 @@ class _InsightsScreenState
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔥 TOP ROW
+              const Text(
+                "Insights",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 🔥 TOP SECTION
               Row(
                 children: [
                   Expanded(
                     child: Column(
                       children: [
-                        _infoCard("Top Category", topCategory,
-                            Colors.orange, Icons.star),
-                        const SizedBox(height: 10),
-                        _infoCard("Frequent Type", frequentType,
-                            Colors.blue, Icons.repeat),
-                        const SizedBox(height: 10),
                         _infoCard(
-                            "Weekly",
-                            "₹${thisWeek.toInt()} vs ₹${lastWeek.toInt()}",
-                            Colors.purple,
-                            Icons.bar_chart),
+                          "Top Category",
+                          topCategory,
+                          Colors.orange,
+                          Icons.star,
+                        ),
+                        const SizedBox(height: 12),
+                        _infoCard(
+                          "Frequent Type",
+                          frequentType,
+                          Colors.blue,
+                          Icons.repeat,
+                        ),
+                        const SizedBox(height: 12),
+                        _infoCard(
+                          "Weekly",
+                          "₹${thisWeek.toInt()} vs ₹${lastWeek.toInt()}",
+                          Colors.purple,
+                          Icons.bar_chart,
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: _pieChart(categoryTotals, colors),
+                  Expanded(child: _pieChart(categoryTotals, colors)),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              const Text(
+                "Trends",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 🔘 TOGGLE
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _toggle(
+                    "Monthly",
+                    showMonthly,
+                    () => setState(() => showMonthly = true),
+                  ),
+                  const SizedBox(width: 10),
+                  _toggle(
+                    "Yearly",
+                    !showMonthly,
+                    () => setState(() => showMonthly = false),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-              // 🔘 Toggle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _toggle("Monthly", showMonthly,
-                      () => setState(() => showMonthly = true)),
-                  const SizedBox(width: 10),
-                  _toggle("Yearly", !showMonthly,
-                      () => setState(() => showMonthly = false)),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // 🔘 Filters
+              // 🔘 FILTERS
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _filter("Income", showIncome, Colors.green,
-                      () => setState(() => showIncome = !showIncome)),
-                  _filter("Expense", showExpense, Colors.red,
-                      () => setState(() => showExpense = !showExpense)),
-                  _filter("Savings", showSavings, Colors.orange,
-                      () => setState(() => showSavings = !showSavings)),
+                  _filter(
+                    "Income",
+                    showIncome,
+                    Colors.green,
+                    () => setState(() => showIncome = !showIncome),
+                  ),
+                  _filter(
+                    "Expense",
+                    showExpense,
+                    Colors.red,
+                    () => setState(() => showExpense = !showExpense),
+                  ),
+                  _filter(
+                    "Savings",
+                    showSavings,
+                    Colors.orange,
+                    () => setState(() => showSavings = !showSavings),
+                  ),
                 ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
 
-              // 📈 Graph
+              // 📈 GRAPH CARD
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   key: ValueKey(showMonthly),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: SizedBox(
-                      height: 250,
+                      height: 260,
                       child: showMonthly
                           ? _monthlyChart(transactions, savingsList)
                           : _yearlyChart(transactions, savingsList),
@@ -205,8 +244,7 @@ class _InsightsScreenState
   }
 
   // 🔥 PIE CHART FIXED
-  Widget _pieChart(
-      Map<String, double> categoryTotals, List<Color> colors) {
+  Widget _pieChart(Map<String, double> categoryTotals, List<Color> colors) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
@@ -219,15 +257,16 @@ class _InsightsScreenState
                 .asMap()
                 .entries
                 .map<PieChartSectionData>((entry) {
-              int i = entry.key;
-              var e = entry.value;
+                  int i = entry.key;
+                  var e = entry.value;
 
-              return PieChartSectionData(
-                value: e.value.toDouble(),
-                color: colors[i % colors.length],
-                radius: 45,
-              );
-            }).toList(),
+                  return PieChartSectionData(
+                    value: e.value.toDouble(),
+                    color: colors[i % colors.length],
+                    radius: 45,
+                  );
+                })
+                .toList(),
           ),
         ),
       ),
@@ -236,39 +275,49 @@ class _InsightsScreenState
 
   // 🔥 LINE CHART FIXED
   Widget _buildLineChart(
-      List<double> income,
-      List<double> expense,
-      List<double> savings) {
+    List<double> income,
+    List<double> expense,
+    List<double> savings,
+  ) {
     List<LineChartBarData> lines = [];
 
     if (showIncome) {
-      lines.add(LineChartBarData(
-        spots: List<FlSpot>.generate(
+      lines.add(
+        LineChartBarData(
+          spots: List<FlSpot>.generate(
             income.length,
-            (i) => FlSpot(i.toDouble(), income[i])),
-        isCurved: true,
-        color: Colors.green,
-      ));
+            (i) => FlSpot(i.toDouble(), income[i]),
+          ),
+          isCurved: true,
+          color: Colors.green,
+        ),
+      );
     }
 
     if (showExpense) {
-      lines.add(LineChartBarData(
-        spots: List<FlSpot>.generate(
+      lines.add(
+        LineChartBarData(
+          spots: List<FlSpot>.generate(
             expense.length,
-            (i) => FlSpot(i.toDouble(), expense[i])),
-        isCurved: true,
-        color: Colors.red,
-      ));
+            (i) => FlSpot(i.toDouble(), expense[i]),
+          ),
+          isCurved: true,
+          color: Colors.red,
+        ),
+      );
     }
 
     if (showSavings) {
-      lines.add(LineChartBarData(
-        spots: List<FlSpot>.generate(
+      lines.add(
+        LineChartBarData(
+          spots: List<FlSpot>.generate(
             savings.length,
-            (i) => FlSpot(i.toDouble(), savings[i])),
-        isCurved: true,
-        color: Colors.orange,
-      ));
+            (i) => FlSpot(i.toDouble(), savings[i]),
+          ),
+          isCurved: true,
+          color: Colors.orange,
+        ),
+      );
     }
 
     return LineChart(LineChartData(lineBarsData: lines));
@@ -304,8 +353,7 @@ class _InsightsScreenState
 
       if (diff >= 0 && diff < 30) {
         int i = 29 - diff;
-        savings[i] +=
-            s.type == "deposit" ? s.amount : -s.amount;
+        savings[i] += s.type == "deposit" ? s.amount : -s.amount;
       }
     }
 
@@ -328,8 +376,7 @@ class _InsightsScreenState
 
     for (var s in savingsList) {
       int m = s.date.month - 1;
-      savings[m] +=
-          s.type == "deposit" ? s.amount : -s.amount;
+      savings[m] += s.type == "deposit" ? s.amount : -s.amount;
     }
 
     return _buildLineChart(income, expense, savings);
@@ -337,39 +384,41 @@ class _InsightsScreenState
 
   // 🎨 UI
   Widget _infoCard(
-      String title, String value, Color color, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(14),
-      decoration: _cardDecoration(),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 10),
-          Column(
+    String title, String value, Color color, IconData icon) {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: _cardDecoration(),
+    child: Row(
+      children: [
+        CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
                   style: TextStyle(color: Colors.grey[600])),
+              const SizedBox(height: 2),
               Text(value,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold)),
             ],
-          )
-        ],
-      ),
-    );
-  }
+          ),
+        )
+      ],
+    ),
+  );
+}
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-        )
+        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
       ],
     );
   }
@@ -379,36 +428,33 @@ class _InsightsScreenState
       onTap: f,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? Colors.black : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color:
-                    selected ? Colors.white : Colors.black)),
+        child: Text(
+          label,
+          style: TextStyle(color: selected ? Colors.white : Colors.black),
+        ),
       ),
     );
   }
 
-  Widget _filter(
-      String label, bool selected, Color color, VoidCallback f) {
+  Widget _filter(String label, bool selected, Color color, VoidCallback f) {
     return GestureDetector(
       onTap: f,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? color : Colors.grey[200],
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(label,
-            style: TextStyle(
-                color:
-                    selected ? Colors.white : Colors.black)),
+        child: Text(
+          label,
+          style: TextStyle(color: selected ? Colors.white : Colors.black),
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../providers/savings_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/savings_model.dart';
+import '../core/page_route.dart';
 import 'savings_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -27,14 +28,12 @@ class _DashboardScreenState
     final transactions = ref.watch(transactionProvider);
     final savingsList = ref.watch(savingsProvider);
 
-    // 💰 Total Savings
     double totalSavings = 0;
     for (var s in savingsList) {
       totalSavings +=
           s.type == "deposit" ? s.amount : -s.amount;
     }
 
-    // 📊 Income & Expense
     double income = 0;
     double expense = 0;
 
@@ -49,107 +48,139 @@ class _DashboardScreenState
     final balance = income - expense;
     final availableBalance = balance - totalSavings;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _balanceCard(availableBalance, balance, totalSavings),
-
-          const SizedBox(height: 20),
-
-          // 📊 Stats
-          Row(
+    return Scaffold(
+      appBar: AppBar(title: const Text("Dashboard")),
+      body: AnimatedOpacity(
+        duration: const Duration(milliseconds: 500),
+        opacity: 1,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                  child: _buildStatCard(
-                      "Income", income, Colors.green)),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: _buildStatCard(
-                      "Expense", expense, Colors.red)),
-            ],
-          ),
+              _balanceCard(
+                  availableBalance, balance, totalSavings),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-          // 📈 Weekly Chart
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              const Text("Overview",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+
+              const SizedBox(height: 12),
+
+              Row(
                 children: [
-                  const Text(
-                    "Weekly Trends",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration:
+                          const Duration(milliseconds: 300),
+                      child: _buildStatCard(
+                          "Income", income, Colors.green),
+                    ),
                   ),
-                  const SizedBox(height: 10),
-
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildFilterChip(
-                          "Income", showIncome, Colors.green, () {
-                        setState(() => showIncome = !showIncome);
-                      }),
-                      _buildFilterChip(
-                          "Expense", showExpense, Colors.red, () {
-                        setState(() => showExpense = !showExpense);
-                      }),
-                      _buildFilterChip(
-                          "Savings", showSavings, Colors.orange,
-                          () {
-                        setState(
-                            () => showSavings = !showSavings);
-                      }),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  SizedBox(
-                    height: 240,
-                    child: _buildWeeklyChart(
-                        transactions, savingsList),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration:
+                          const Duration(milliseconds: 300),
+                      child: _buildStatCard(
+                          "Expense", expense, Colors.red),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-          // 💰 Savings Tile
-          Card(
-            child: ListTile(
-              leading:
-                  const Icon(Icons.savings, color: Colors.orange),
-              title: const Text("Savings"),
-              subtitle: Text("₹$totalSavings"),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const SavingsScreen()),
-                );
-              },
-              trailing: IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () {
-                  _showSavingsDialog(
-                      context, ref, balance, totalSavings);
-                },
+              const Text("Weekly Trends",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+
+              const SizedBox(height: 12),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildFilterChip("Income", showIncome,
+                              Colors.green, () {
+                            setState(() =>
+                                showIncome = !showIncome);
+                          }),
+                          _buildFilterChip("Expense", showExpense,
+                              Colors.red, () {
+                            setState(() =>
+                                showExpense = !showExpense);
+                          }),
+                          _buildFilterChip("Savings", showSavings,
+                              Colors.orange, () {
+                            setState(() =>
+                                showSavings = !showSavings);
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      AnimatedSwitcher(
+                        duration:
+                            const Duration(milliseconds: 400),
+                        child: SizedBox(
+                          key: ValueKey(
+                              "$showIncome$showExpense$showSavings"),
+                          height: 240,
+                          child: _buildWeeklyChart(
+                              transactions, savingsList),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+
+              const SizedBox(height: 24),
+
+              // 🔥 SAVINGS CARD (FIXED)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.savings,
+                      color: Colors.orange),
+                  title: const Text("Savings"),
+                  subtitle: Text("₹$totalSavings"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      _showSavingsDialog(
+                          context, ref, balance, totalSavings);
+                    },
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      FadeRoute(
+                          page: const SavingsScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // 💳 Balance Card
-  Widget _balanceCard(double available, double total, double savings) {
-    return Container(
+  Widget _balanceCard(
+      double available, double total, double savings) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -166,7 +197,7 @@ class _DashboardScreenState
           const SizedBox(height: 10),
           Text("₹$available",
               style: const TextStyle(
-                  fontSize: 32,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: Colors.white)),
           Text("Total: ₹$total | Savings: ₹$savings",
@@ -176,7 +207,6 @@ class _DashboardScreenState
     );
   }
 
-  // 📊 Stat Card
   Widget _buildStatCard(
       String title, double amount, Color color) {
     return Card(
@@ -185,24 +215,24 @@ class _DashboardScreenState
         child: Column(
           children: [
             Text(title),
-            const SizedBox(height: 5),
-            Text(
-              "₹$amount",
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: color),
-            ),
+            const SizedBox(height: 6),
+            Text("₹$amount",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color)),
           ],
         ),
       ),
     );
   }
 
-  // 🎛 Filter Chip
   Widget _buildFilterChip(
       String label, bool selected, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(
             horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
@@ -211,12 +241,12 @@ class _DashboardScreenState
         ),
         child: Text(label,
             style: TextStyle(
-                color: selected ? Colors.white : Colors.black)),
+                color:
+                    selected ? Colors.white : Colors.black)),
       ),
     );
   }
 
-  // 📈 Weekly Chart
   Widget _buildWeeklyChart(transactions, savingsList) {
     final now = DateTime.now();
     DateTime today = DateTime(now.year, now.month, now.day);
@@ -226,67 +256,37 @@ class _DashboardScreenState
     List<double> savingsData = List.filled(7, 0);
 
     for (var tx in transactions) {
-      DateTime txDate =
-          DateTime(tx.date.year, tx.date.month, tx.date.day);
-      final diff = today.difference(txDate).inDays;
+      final diff = today
+          .difference(DateTime(tx.date.year, tx.date.month, tx.date.day))
+          .inDays;
 
       if (diff >= 0 && diff < 7) {
-        final index = 6 - diff;
+        final i = 6 - diff;
         if (tx.type == "income") {
-          incomeData[index] += tx.amount;
+          incomeData[i] += tx.amount;
         } else {
-          expenseData[index] += tx.amount;
+          expenseData[i] += tx.amount;
         }
       }
     }
 
     for (var s in savingsList) {
-      DateTime sDate =
-          DateTime(s.date.year, s.date.month, s.date.day);
-      final diff = today.difference(sDate).inDays;
+      final diff = today
+          .difference(DateTime(s.date.year, s.date.month, s.date.day))
+          .inDays;
 
       if (diff >= 0 && diff < 7) {
-        final index = 6 - diff;
-        savingsData[index] +=
+        final i = 6 - diff;
+        savingsData[i] +=
             s.type == "deposit" ? s.amount : -s.amount;
       }
     }
 
-    double maxY = 0;
-    for (int i = 0; i < 7; i++) {
-      maxY = max(maxY,
-          max(incomeData[i], max(expenseData[i], savingsData[i])));
-    }
+    double maxY = incomeData
+        .followedBy(expenseData)
+        .followedBy(savingsData)
+        .reduce(max);
     maxY *= 1.2;
-
-    List<LineChartBarData> lines = [];
-
-    if (showIncome) {
-      lines.add(LineChartBarData(
-        spots: List.generate(
-            7, (i) => FlSpot(i.toDouble(), incomeData[i])),
-        isCurved: true,
-        color: Colors.green,
-      ));
-    }
-
-    if (showExpense) {
-      lines.add(LineChartBarData(
-        spots: List.generate(
-            7, (i) => FlSpot(i.toDouble(), expenseData[i])),
-        isCurved: true,
-        color: Colors.red,
-      ));
-    }
-
-    if (showSavings) {
-      lines.add(LineChartBarData(
-        spots: List.generate(
-            7, (i) => FlSpot(i.toDouble(), savingsData[i])),
-        isCurved: true,
-        color: Colors.orange,
-      ));
-    }
 
     return LineChart(
       LineChartData(
@@ -294,12 +294,33 @@ class _DashboardScreenState
         maxX: 6,
         minY: 0,
         maxY: maxY,
-        lineBarsData: lines,
+        lineBarsData: [
+          if (showIncome)
+            LineChartBarData(
+              spots: List.generate(
+                  7, (i) => FlSpot(i.toDouble(), incomeData[i])),
+              isCurved: true,
+              color: Colors.green,
+            ),
+          if (showExpense)
+            LineChartBarData(
+              spots: List.generate(
+                  7, (i) => FlSpot(i.toDouble(), expenseData[i])),
+              isCurved: true,
+              color: Colors.red,
+            ),
+          if (showSavings)
+            LineChartBarData(
+              spots: List.generate(
+                  7, (i) => FlSpot(i.toDouble(), savingsData[i])),
+              isCurved: true,
+              color: Colors.orange,
+            ),
+        ],
       ),
     );
   }
 
-  // 💰 Savings Dialog (FINAL)
   void _showSavingsDialog(
     BuildContext context,
     WidgetRef ref,
@@ -307,7 +328,6 @@ class _DashboardScreenState
     double totalSavings,
   ) {
     final controller = TextEditingController();
-    DateTime selectedDate = DateTime.now();
     String type = "deposit";
 
     showDialog(
@@ -325,46 +345,15 @@ class _DashboardScreenState
                   decoration:
                       const InputDecoration(labelText: "Amount"),
                 ),
-
-                const SizedBox(height: 10),
-
-                DropdownButtonFormField<String>(
+                DropdownButtonFormField(
                   value: type,
                   items: const [
                     DropdownMenuItem(
-                        value: "deposit",
-                        child: Text("Deposit")),
+                        value: "deposit", child: Text("Deposit")),
                     DropdownMenuItem(
-                        value: "withdraw",
-                        child: Text("Withdraw")),
+                        value: "withdraw", child: Text("Withdraw")),
                   ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => type = val);
-                    }
-                  },
-                  decoration:
-                      const InputDecoration(labelText: "Type"),
-                ),
-
-                const SizedBox(height: 10),
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                      "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"),
-                  trailing: const Icon(Icons.calendar_today),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      setState(() => selectedDate = picked);
-                    }
-                  },
+                  onChanged: (v) => setState(() => type = v!),
                 ),
               ],
             ),
@@ -372,15 +361,8 @@ class _DashboardScreenState
               ElevatedButton(
                 onPressed: () async {
                   final amount =
-                      double.tryParse(controller.text.trim());
-
-                  if (amount == null || amount <= 0) return;
-
-                  if (type == "withdraw" &&
-                      amount > totalSavings) return;
-
-                  if (type == "deposit" &&
-                      amount > balance - totalSavings) return;
+                      double.tryParse(controller.text);
+                  if (amount == null) return;
 
                   await ref
                       .read(savingsProvider.notifier)
@@ -391,14 +373,14 @@ class _DashboardScreenState
                               .toString(),
                           amount: amount,
                           type: type,
-                          date: selectedDate,
+                          date: DateTime.now(),
                         ),
                       );
 
-                  if (context.mounted) Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 child: const Text("Save"),
-              ),
+              )
             ],
           );
         },

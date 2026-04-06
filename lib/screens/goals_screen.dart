@@ -5,13 +5,43 @@ import '../providers/goal_provider.dart';
 import '../providers/expense_goal_provider.dart';
 import '../providers/savings_provider.dart';
 import '../providers/transaction_provider.dart';
+import '../core/page_route.dart';
 import 'expense_calendar_screen.dart';
 
-class GoalsScreen extends ConsumerWidget {
+class GoalsScreen extends ConsumerStatefulWidget {
   const GoalsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends ConsumerState<GoalsScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> fade;
+  late Animation<Offset> slide;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+
+    slide = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(_controller);
+
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final goal = ref.watch(goalProvider);
     final expenseGoal = ref.watch(expenseGoalProvider);
     final savingsList = ref.watch(savingsProvider);
@@ -19,20 +49,16 @@ class GoalsScreen extends ConsumerWidget {
 
     final now = DateTime.now();
 
-    // 🎯 Monthly Savings
     double monthlySavings = 0;
     for (var s in savingsList) {
-      if (s.date.month == now.month &&
-          s.date.year == now.year) {
-        monthlySavings +=
-            s.type == "deposit" ? s.amount : -s.amount;
+      if (s.date.month == now.month && s.date.year == now.year) {
+        monthlySavings += s.type == "deposit" ? s.amount : -s.amount;
       }
     }
 
     double savingsProgress =
         goal == 0 ? 0 : (monthlySavings / goal).clamp(0, 1);
 
-    // 🔥 Today Expense
     double todayExpense = 0;
     for (var tx in transactions) {
       if (tx.type == "expense" &&
@@ -46,7 +72,7 @@ class GoalsScreen extends ConsumerWidget {
     double expenseProgress =
         (todayExpense / expenseGoal).clamp(0, 1);
 
-    // 🔥 STREAK LOGIC
+    // 🔥 STREAK
     int streak = 0;
     DateTime checkDay =
         DateTime(now.year, now.month, now.day);
@@ -74,112 +100,165 @@ class GoalsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Goals & Challenges")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 🎯 SAVINGS GOAL
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                leading:
-                    const Icon(Icons.flag, color: Colors.blue),
-                title: const Text("Monthly Savings Goal"),
-                subtitle: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text("₹$monthlySavings / ₹$goal"),
-                    const SizedBox(height: 6),
-                    LinearProgressIndicator(
-                      value: savingsProgress,
-                      minHeight: 6,
-                    ),
-                  ],
+      body: FadeTransition(
+        opacity: fade,
+        child: SlideTransition(
+          position: slide,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Your Goals",
+                  style:
+                      TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                trailing: const Icon(Icons.edit),
-                onTap: () {
-                  _showGoalDialog(context, ref, goal);
-                },
-              ),
-            ),
 
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-            // 🔥 EXPENSE GOAL (EDITABLE)
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                leading: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CircularProgressIndicator(
-                        value: expenseProgress,
-                        strokeWidth: 6,
-                        color: expenseProgress > 1
-                            ? Colors.red
-                            : Colors.green,
+                // 🎯 SAVINGS GOAL
+                _animatedCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          Colors.blue.withOpacity(0.1),
+                      child:
+                          const Icon(Icons.flag, color: Colors.blue),
+                    ),
+                    title: const Text("Monthly Savings Goal"),
+                    subtitle: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 6),
+                        Text("₹$monthlySavings / ₹$goal"),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: savingsProgress,
+                          minHeight: 8,
+                          borderRadius:
+                              BorderRadius.circular(10),
+                        ),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.edit),
+                    onTap: () {
+                      _showGoalDialog(context, ref, goal);
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "Daily Discipline",
+                  style:
+                      TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 🔥 EXPENSE GOAL
+                _animatedCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            value: expenseProgress,
+                            strokeWidth: 6,
+                            backgroundColor:
+                                Colors.grey[200],
+                            color: expenseProgress > 1
+                                ? Colors.red
+                                : Colors.green,
+                          ),
+                        ),
+                        const Icon(Icons.local_fire_department),
+                      ],
+                    ),
+                    title: const Text("Daily Expense Goal"),
+                    subtitle:
+                        Text("₹$todayExpense / ₹$expenseGoal"),
+                    trailing: const Icon(Icons.edit),
+                    onTap: () {
+                      _showExpenseGoalDialog(
+                          context, ref, expenseGoal);
+                    },
+                    onLongPress: () {
+                      Navigator.push(
+                        context,
+                        FadeRoute(
+                          page: const ExpenseCalendarScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 🔥 STREAK CARD
+                _animatedCard(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          Colors.orange.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.local_fire_department,
+                        color: Colors.orange,
                       ),
                     ),
-                    const Icon(Icons.local_fire_department),
-                  ],
-                ),
-                title: const Text("Daily Expense Goal"),
-                subtitle:
-                    Text("₹$todayExpense / ₹$expenseGoal"),
-                trailing: const Icon(Icons.edit),
-
-                // 👉 TAP = EDIT
-                onTap: () {
-                  _showExpenseGoalDialog(
-                      context, ref, expenseGoal);
-                },
-
-                // 👉 LONG PRESS = CALENDAR
-                onLongPress: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const ExpenseCalendarScreen(),
+                    title: const Text("Spending Discipline"),
+                    subtitle: Text("$streak day streak"),
+                    trailing: Column(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: [
+                        if (streak >= 7)
+                          const Icon(Icons.emoji_events,
+                              color: Colors.amber),
+                        Text(
+                          streak >= 5
+                              ? "🔥 On Fire"
+                              : streak >= 3
+                                  ? "💪 Great"
+                                  : "",
+                          style:
+                              const TextStyle(fontSize: 10),
+                        )
+                      ],
                     ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 🔥 STREAK CARD
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.local_fire_department,
-                  color: Colors.orange,
+                  ),
                 ),
-                title: const Text("Spending Discipline"),
-                subtitle: Text("$streak day streak"),
-
-                trailing: streak >= 7
-                    ? const Icon(Icons.emoji_events,
-                        color: Colors.amber)
-                    : null,
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // 🎯 EDIT SAVINGS GOAL
+  Widget _animatedCard({required Widget child}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        child: child,
+      ),
+    );
+  }
+
   void _showGoalDialog(
       BuildContext context, WidgetRef ref, double goal) {
     final controller =
@@ -192,8 +271,6 @@ class GoalsScreen extends ConsumerWidget {
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration:
-              const InputDecoration(labelText: "Amount"),
         ),
         actions: [
           TextButton(
@@ -204,7 +281,6 @@ class GoalsScreen extends ConsumerWidget {
             onPressed: () async {
               final value =
                   double.tryParse(controller.text.trim());
-
               if (value == null || value <= 0) return;
 
               await ref
@@ -220,7 +296,6 @@ class GoalsScreen extends ConsumerWidget {
     );
   }
 
-  // 🔥 EDIT EXPENSE GOAL
   void _showExpenseGoalDialog(
       BuildContext context,
       WidgetRef ref,
@@ -235,8 +310,6 @@ class GoalsScreen extends ConsumerWidget {
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
-          decoration:
-              const InputDecoration(labelText: "Amount"),
         ),
         actions: [
           TextButton(
@@ -247,7 +320,6 @@ class GoalsScreen extends ConsumerWidget {
             onPressed: () async {
               final value =
                   double.tryParse(controller.text.trim());
-
               if (value == null || value <= 0) return;
 
               await ref
